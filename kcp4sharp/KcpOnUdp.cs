@@ -26,6 +26,7 @@ namespace cocosocket4unity
       protected volatile bool needUpdate;
       protected long timeout;//超时
       protected DateTime lastTime;//上次检测时间
+      private IPEndPoint curAddr;//当前的客户端地址
         /// <summary>
         /// 客户端
         /// </summary>
@@ -44,14 +45,20 @@ namespace cocosocket4unity
       /// </summary>
       public void Connect(string host,int port)
       { 
-          serverAddr=new IPEndPoint(IPAddress.Parse(host),port);
+          if(host!=null)
+          { 
+             serverAddr=new IPEndPoint(IPAddress.Parse(host),port);
+          }
           //mode setting
           kcp.NoDelay(nodelay, interval, resend, nc);
           kcp.WndSize(sndwnd, rcvwnd);
           kcp.SetMtu(mtu);
           try
           {
-              this.client.Connect(serverAddr);
+              if(serverAddr!=null)
+              {
+                  this.client.Connect(serverAddr);
+              }
               client.BeginReceive(Received, client);
           }
           catch (Exception ex)
@@ -74,12 +81,13 @@ namespace cocosocket4unity
       {
           UdpClient client = (UdpClient)ar.AsyncState;
           try
-          { 
-          byte[] data=client.EndReceive(ar, ref this.serverAddr);
+          {
+              byte[] data = client.EndReceive(ar, ref this.curAddr);
           lock(LOCK)
           {
             this.received.AddLast(new ByteBuf(data));
             this.needUpdate = true;
+			this.lastTime = DateTime.Now;
           }
             client.BeginReceive(Received, ar.AsyncState);
            }catch(Exception ex)
@@ -122,7 +130,6 @@ namespace cocosocket4unity
       int n = kcp.Receive(bb);
       if (n > 0)
       {
-        this.lastTime = DateTime.Now;
         this.HandleReceive(bb);
       }
     }
@@ -145,12 +152,12 @@ namespace cocosocket4unity
       this.needUpdate = false;
     }
     //check timeout
-    if (this.timeout > 0 && lastTime!=DateTime.MinValue)
+    if (this.timeout > 0  && lastTime!=DateTime.MinValue)
     {
         double del=(DateTime.Now - this.lastTime).TotalMilliseconds;
         if (del > this.timeout) 
         { 
-        this.HandleTimeout();
+          this.HandleTimeout();
         }
     }
   }
