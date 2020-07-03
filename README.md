@@ -5,6 +5,6 @@ kcp是一种独立于底层通信协议的重传算法，kcp4sharp适用与客�
 
 请参考TestKcp.cs文件
 
-##kcp的算法细节请参考
+## kcp的算法细节请参考
 
 [kcp](https://github.com/skywind3000/kcp)
